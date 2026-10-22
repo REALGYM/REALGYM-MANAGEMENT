@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RealGym Management - Gestione Palestra Cloud</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            red: '#dc2626',
+                            hover: '#b91c1c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js CDN per i grafici -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        @keyframes scaleUp {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-scale-up { animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex antialiased transition-colors duration-300">
+
+    <!-- SCHERMATA DI CARICAMENTO INIZIALE CON IMMAGINE A TUTTO SCHERMO E BARRA LARGA -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-end p-8 transition-opacity duration-700 overflow-hidden">
+        <!-- Immagine di caricamento a tutto schermo -->
+        <img src="CARICAMENTO.png" alt="Caricamento" class="absolute inset-0 w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/1920x1080?text=CARICAMENTO';">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-xs"></div> <!-- Overlay protettivo per la visibilità della barra -->
+
+        <div class="relative z-10 flex flex-col items-center text-center space-y-6 w-full max-w-lg pb-10 animate-fade-in">
+            <div id="loading-spinner-area" class="w-full flex flex-col items-center space-y-3">
+                <div class="w-full bg-slate-900/60 backdrop-blur-md rounded-full h-4 p-1 border border-white/20 overflow-hidden shadow-2xl">
+                    <div id="loading-progress-bar" class="bg-red-600 h-full rounded-full transition-all duration-300 w-1/4 shadow-lg"></div>
+                </div>
+                <span id="loading-percentage" class="text-xs font-bold text-white tracking-wider drop-shadow-md">25%</span>
+            </div>
+
+            <div id="enter-btn-area" class="hidden animate-scale-up w-full">
+                <button onclick="enterApp()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black px-10 py-4 rounded-2xl shadow-2xl text-sm md:text-base tracking-wider transition-all duration-300 transform hover:scale-105 border-0 focus:outline-none uppercase">
+                    ACCEDI AL SISTEMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU LATERALE PERMANENTE -->
+    <aside class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center space-x-3">
+            <div class="w-10 h-10 bg-red-50 dark:bg-red-950/50 p-2 rounded-2xl border border-red-100 dark:border-red-900/50 flex items-center justify-center shadow-xs shrink-0">
+                <img src="logo.png" alt="Logo" class="w-6 h-6 object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/40?text=GYM';">
+            </div>
+            <span class="text-base font-black tracking-wider text-slate-900 dark:text-white uppercase">MANAGEMENT</span>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <button onclick="openSection('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide transition-all bg-red-600 text-white shadow-md shadow-red-600/20">
+                <i class="fa-solid fa-chart-line text-base w-5 text-center"></i>
+                <span>Dashboard e Analytics</span>
+            </button>
+
+            <button onclick="openSection('management')" id="nav-management" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
+                <i class="fa-solid fa-users-gear text-base w-5 text-center"></i>
+                <span>Gestione Iscritti</span>
+            </button>
+
+            <button onclick="openSection('entries')" id="nav-entries" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
+                <i class="fa-solid fa-right-to-bracket text-base w-5 text-center"></i>
+                <span>Registrazione Ingressi</span>
+            </button>
+
+            <button onclick="openSection('cassa')" id="nav-cassa" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
+                <i class="fa-solid fa-cash-register text-base w-5 text-center"></i>
+                <span>Registro Cassa</span>
+            </button>
+
+            <button onclick="openSection('lockers')" id="nav-lockers" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
+                <i class="fa-solid fa-door-closed text-base w-5 text-center"></i>
+                <span>Armadietti</span>
+            </button>
+
+            <button onclick="openSection('products')" id="nav-products" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
+                <i class="fa-solid fa-boxes-stacked text-base w-5 text-center"></i>
+                <span>Magazzino Prodotti</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-400 dark:text-slate-500 text-center">
+            Realgym System &copy; 2026
+        </div>
+    </aside>
+
+    <!-- CONTAINER PRINCIPALE DESTRO -->
+    <div class="pl-64 flex-1 flex flex-col min-h-screen">
+
+        <!-- BARRA SUPERIORE -->
+        <header class="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 px-8 flex items-center justify-end space-x-4">
+            <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 rounded-full border border-slate-200/60 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all shadow-xs">
+                <span id="sync-dot" class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span id="sync-text">Cloud Sync Sincronizzato</span>
+            </div>
+
+            <div class="w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shadow-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer" title="Profilo Utente">
+                <i class="fa-solid fa-circle-user text-lg"></i>
+            </div>
+
+            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shadow-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Impostazioni">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </button>
+        </header>
+
+        <!-- CONTENUTO PRINCIPALE -->
+        <div class="p-8 flex-1">
+            
+            <!-- SEZIONE 1: DASHBOARD E ANALYTICS -->
+            <div id="section-dashboard" class="space-y-8 animate-fade-in">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between relative overflow-hidden group">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Totale Iscritti</p>
+                            <p id="home-total-members" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</p>
+                        </div>
+                        <div class="p-4 bg-red-50 dark:bg-red-950/40 text-red-600 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-users text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between relative overflow-hidden group">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Abbonamenti Attivi</p>
+                            <p id="home-active-members" class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">0</p>
+                        </div>
+                        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-user-check text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between relative overflow-hidden group">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">In Scadenza / Scaduti</p>
+                            <p id="home-expired-members" class="text-3xl font-extrabold text-rose-600 dark:text-rose-400">0</p>
+                        </div>
+                        <div class="p-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-user-clock text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between relative overflow-hidden group">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Totale Registrati</p>
+                            <p id="home-total-registered" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">0</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-address-book text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+                        <h3 class="text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider w-full text-left flex items-center">
+                            <i class="fa-solid fa-chart-column text-red-600 mr-2"></i> Panoramica Iscritti (Barre)
+                        </h3>
+                        <div class="w-full h-64 flex items-center justify-center">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+                        <h3 class="text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider w-full text-left flex items-center">
+                            <i class="fa-solid fa-chart-pie text-red-600 mr-2"></i> Rapporto Stati (Torta)
+                        </h3>
+                        <div class="w-full h-64 flex items-center justify-center">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 2: GESTIONE ISCRIZIONI -->
+            <main id="section-management" class="space-y-8 hidden animate-fade-in">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Totale Iscritti</p>
+                            <p id="total-members" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</p>
+                        </div>
+                        <div class="p-4 bg-red-50 dark:bg-red-950/40 text-red-600 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-users text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Abbonamenti Attivi</p>
+                            <p id="active-members" class="text-3xl font-extrabold text-emerald-600">0</p>
+                        </div>
+                        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-user-check text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">In Scadenza / Scaduti</p>
+                            <p id="expired-members" class="text-3xl font-extrabold text-rose-600">0</p>
+                        </div>
+                        <div class="p-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-user-clock text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Totale Registrati</p>
+                            <p id="total-registered" class="text-3xl font-extrabold text-blue-600">0</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 dark:bg-blue-950/40 text-blue-600 rounded-2xl shadow-inner">
+                            <i class="fa-solid fa-address-book text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista Iscritti in Barre Arrotondate -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-100 dark:border-slate-800 flex flex-col">
+                    <div class="flex flex-col items-center justify-center mb-8 gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 text-center">
+                        <h2 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center">
+                            <div class="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fa-solid fa-address-book text-base"></i>
+                            </div>
+                            Registro Iscritti
+                        </h2>
+                        
+                        <div class="flex flex-wrap items-center justify-center gap-3 w-full">
+                            <button onclick="openNewMemberModal()" class="w-11 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shrink-0" title="Aggiungi Nuovo Iscritto">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </button>
+
+                            <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl flex text-[11px] font-bold border border-slate-200/60 dark:border-slate-700 overflow-x-auto">
+                                <button onclick="setFilterStatus('active')" id="filter-active" class="px-3.5 py-2 rounded-xl transition text-slate-600 dark:text-slate-400 whitespace-nowrap">Attivi</button>
+                                <button onclick="setFilterStatus('expiring')" id="filter-expiring" class="px-3.5 py-2 rounded-xl transition text-slate-600 dark:text-slate-400 whitespace-nowrap">In Scadenza</button>
+                                <button onclick="setFilterStatus('all')" id="filter-all" class="px-3.5 py-2 rounded-xl transition bg-white dark:bg-slate-700 text-red-600 shadow-sm font-extrabold whitespace-nowrap">Tutti</button>
+                                <button onclick="setFilterStatus('expired')" id="filter-expired" class="px-3.5 py-2 rounded-xl transition text-slate-600 dark:text-slate-400 whitespace-nowrap">Scaduti</button>
+                                <button onclick="setFilterStatus('non-practicing')" id="filter-non-practicing" class="px-3.5 py-2 rounded-xl transition text-slate-600 dark:text-slate-400 whitespace-nowrap">Non Praticanti</button>
+                                <button onclick="setFilterStatus('suspended')" id="filter-suspended" class="px-3.5 py-2 rounded-xl transition text-slate-600 dark:text-slate-400 whitespace-nowrap">Sospesi</button>
+                            </div>
+
+                            <div class="relative w-full sm:w-56">
+                                <input type="text" id="search" placeholder="Cerca iscritto..."
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 text-sm transition font-medium text-slate-800 dark:text-slate-100">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="member-list-container" class="space-y-3"></div>
+                </div>
+            </main>
+
+            <!-- SEZIONE 3: REGISTRAZIONE INGRESSI -->
+            <main id="section-entries" class="max-w-4xl mx-auto hidden animate-fade-in w-full space-y-8">
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 md:p-10 border border-slate-100 dark:border-slate-800 relative">
+                    <div id="duplicate-warning-popup" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl hidden flex flex-col items-center justify-center p-6 z-30 shadow-2xl animate-scale-up">
+                        <div class="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 text-amber-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner mb-4 animate-bounce">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h3 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Utente già registrato!</h3>
+                        <p id="duplicate-warning-text" class="text-xs text-slate-500 dark:text-slate-400 text-center font-medium max-w-sm mb-6">L'utente inserito risulta già presente nel sistema.</p>
+                        <div>
+                            <button onclick="closeDuplicateWarning()" class="px-6 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition shadow-md">Annulla</button>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-red-50 dark:bg-red-950/40 text-red-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner border border-red-100 dark:border-red-900/50">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                        </div>
+                        <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Registrazione Ingressi</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">Inserisci i dati per registrare l'ingresso in palestra di un utente (anche non iscritto).</p>
+                    </div>
+
+                    <form id="entry-form" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome</label>
+                                <input type="text" id="entry-name" required placeholder="Es. Mario" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Cognome</label>
+                                <input type="text" id="entry-surname" required placeholder="Es. Rossi" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Numero (Telefono)</label>
+                                <input type="text" id="entry-phone" required placeholder="Es. 3331234567" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Data</label>
+                                <input type="date" id="entry-date" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Ora</label>
+                                <input type="time" id="entry-time" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Importo (€)</label>
+                                <input type="number" step="0.01" id="entry-eur" required placeholder="Es. 10.00" oninput="calcEntryRemaining()" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Metodo Pagamento</label>
+                                <select id="entry-payment-method" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                                    <option value="Contanti">Contanti</option>
+                                    <option value="Bonifico">Bonifico</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Stato Pagamento</label>
+                                <select id="entry-payment-status" onchange="toggleEntryPendingFields()" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                                    <option value="Completo">Completo</option>
+                                    <option value="In sospeso">In sospeso</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="entry-pending-section" class="hidden p-4 bg-slate-50 dark:bg-slate-800/50 border border-amber-200 dark:border-amber-900/50 rounded-2xl grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-amber-600 uppercase mb-1">Importo Dato (€)</label>
+                                <input type="number" step="0.01" id="entry-pay-given" placeholder="Es. 5.00" oninput="calcEntryRemaining()"
+                                    class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1">Importo Mancante (€)</label>
+                                <input type="number" step="0.01" id="entry-pay-missing" placeholder="Es. 5.00"
+                                    class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-xl text-xs font-medium text-rose-600">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition text-sm">
+                            <i class="fa-solid fa-plus mr-2"></i> Registra Ingresso
+                        </button>
+                    </form>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-800 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <h3 class="font-extrabold text-slate-900 dark:text-white text-base flex items-center">
+                            <i class="fa-solid fa-list-check text-red-600 mr-2"></i> Utenti Registrati Ingressi
+                        </h3>
+                        <div class="relative w-full sm:w-64">
+                            <input type="text" id="entries-search" placeholder="Cerca utente registrato..." oninput="renderEntriesTable()"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 text-xs transition font-medium text-slate-800 dark:text-slate-100">
+                            <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                                    <th class="py-3 px-3">Nominativo Utente</th>
+                                    <th class="py-3 px-3 text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entries-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <!-- SEZIONE: REGISTRO CASSA AGGIORNATA CON FILTRI DINAMICI -->
+            <main id="section-cassa" class="hidden animate-fade-in space-y-6">
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-100 dark:border-slate-800">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                        <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+                            <div class="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fa-solid fa-cash-register text-sm"></i>
+                            </div>
+                            Registro Cassa (Entrate)
+                        </h2>
+                        
+                        <div class="flex flex-wrap items-center gap-3">
+                            <select id="cassa-filter-type" onchange="onCassaFilterTypeChange()" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200">
+                                <option value="all">Tutti i periodi</option>
+                                <option value="day">Giorno</option>
+                                <option value="month">Mese</option>
+                                <option value="year">Anno</option>
+                            </select>
+                            
+                            <!-- Contenitore selettore dinamico -->
+                            <div id="cassa-filter-selector-container"></div>
+
+                            <button onclick="openAddCassaModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md flex items-center">
+                                <i class="fa-solid fa-plus mr-1.5"></i> Nuova Entrata
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700">
+                            <p class="text-xs font-bold text-slate-400 uppercase">Totale Selezionato</p>
+                            <p id="cassa-total-amount" class="text-2xl font-black text-emerald-600 mt-1">€ 0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                                    <th class="py-3 px-3">Data</th>
+                                    <th class="py-3 px-3">Descrizione / Utente</th>
+                                    <th class="py-3 px-3">Categoria</th>
+                                    <th class="py-3 px-3">Importo</th>
+                                    <th class="py-3 px-3 text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cassa-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <!-- SEZIONE: ARMADIETTI CON STORICO, FILTRO E BARRA DI RICERCA -->
+            <main id="section-lockers" class="hidden animate-fade-in space-y-8">
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-100 dark:border-slate-800">
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-5">
+                        <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+                            <div class="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fa-solid fa-door-closed text-sm"></i>
+                            </div>
+                            Gestione Armadietti (1 - 30)
+                        </h2>
+                        <div class="flex items-center space-x-4 text-xs font-bold">
+                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block mr-1"></span> Liberi</span>
+                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block mr-1"></span> Occupati</span>
+                        </div>
+                    </div>
+
+                    <div id="lockers-grid" class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-6 gap-4"></div>
+                </div>
+
+                <!-- Storico Armadietti con Filtro Data e Barra di Ricerca -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-100 dark:border-slate-800 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                        <h3 class="text-base font-extrabold text-slate-800 dark:text-white flex items-center">
+                            <div class="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                            </div>
+                            Storico Occupazione Armadietti
+                        </h3>
+                        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                            <input type="date" id="locker-history-date" onchange="renderLockerHistory()" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200">
+                            <div class="relative w-full sm:w-60">
+                                <input type="text" id="locker-history-search" placeholder="Cerca nello storico..." oninput="renderLockerHistory()"
+                                    class="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 text-xs font-medium text-slate-800 dark:text-slate-100">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                                    <th class="py-3 px-3">Data</th>
+                                    <th class="py-3 px-3">N. Armadietto</th>
+                                    <th class="py-3 px-3">Nome e Cognome</th>
+                                </tr>
+                            </thead>
+                            <tbody id="locker-history-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <!-- SEZIONE 4: MAGAZZINO PRODOTTI -->
+            <main id="section-products" class="hidden animate-fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 h-fit">
+                        <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center">
+                            <div class="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fa-solid fa-box-open text-sm"></i>
+                            </div>
+                            Aggiungi Prodotto
+                        </h2>
+                        <form id="product-form" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome Prodotto</label>
+                                <input type="text" id="prod-name" required placeholder="Es. Integratore Whey 1kg"
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Prezzo (€)</label>
+                                <input type="number" step="0.01" id="prod-price" required placeholder="Es. 29.90"
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Quantità Iniziale</label>
+                                <input type="number" id="prod-qty" required value="10" min="0"
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            </div>
+
+                            <button type="submit"
+                                class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 px-4 rounded-xl transition duration-300 shadow-lg text-sm">
+                                <i class="fa-solid fa-plus mr-2"></i> Salva Prodotto
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-5">
+                            <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+                                <div class="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                                    <i class="fa-solid fa-cubes text-sm"></i>
+                                </div>
+                                Magazzino Prodotti
+                            </h2>
+                            <div class="flex space-x-2">
+                                <button onclick="scrollCarousel(-1)" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition shadow-sm">
+                                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                                </button>
+                                <button onclick="scrollCarousel(1)" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition shadow-sm">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="products-carousel" class="flex overflow-x-auto gap-5 pb-4 pt-2 snap-x scroll-smooth focus:outline-none"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL IMPOSTAZIONI -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                    <i class="fa-solid fa-gear text-red-600 mr-2"></i> Impostazioni Sistema
+                </h3>
+                <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tema Grafico</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="setTheme('light')" id="theme-btn-light" class="p-3 rounded-2xl border-2 border-red-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white flex items-center justify-center font-bold text-xs space-x-2">
+                            <i class="fa-solid fa-sun text-amber-500"></i>
+                            <span>Chiaro</span>
+                        </button>
+                        <button onclick="setTheme('dark')" id="theme-btn-dark" class="p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white flex items-center justify-center font-bold text-xs space-x-2">
+                            <i class="fa-solid fa-moon text-indigo-400"></i>
+                            <span>Nero / Scuro</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Backup e Sincronizzazione</label>
+                    <button onclick="alert('Funzione di Backup in arrivo con il prossimo aggiornamento!')" class="w-full mb-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs transition flex items-center justify-between">
+                        <span class="flex items-center"><i class="fa-solid fa-cloud-arrow-down mr-2 text-slate-500"></i> Backup Manuale Dati</span>
+                        <span class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-md uppercase font-bold">Non attivo</span>
+                    </button>
+                    <button onclick="location.reload()" class="w-full bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 font-bold py-3 px-4 rounded-2xl border border-red-200 dark:border-red-900/50 text-xs transition flex items-center justify-center">
+                        <i class="fa-solid fa-rotate mr-2"></i> Sincronizzazione forzata cloud
+                    </button>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                    <p class="font-bold text-slate-500 uppercase tracking-wider mb-2">Informazioni Struttura</p>
+                    <p><strong>Nome palestra:</strong> RealGym Copertino</p>
+                    <p><strong>Programma:</strong> RealGym Management</p>
+                    <p><strong>Versione API:</strong> 1.0</p>
+                </div>
+            </div>
+
+            <div class="mt-8 text-right">
+                <button onclick="closeSettingsModal()" class="bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETTAGLI / SCHEDA -->
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800 transform scale-100">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 id="modal-title" class="text-lg font-bold text-slate-900 dark:text-white">Dettagli</h3>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="bg-slate-50 dark:bg-slate-800 p-5 rounded-2xl text-slate-700 dark:text-slate-200 whitespace-pre-line text-sm border border-slate-200/60 dark:border-slate-700 font-medium leading-relaxed"></div>
+            <div class="mt-8 text-right">
+                <button onclick="closeModal()" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NUOVO ISCRITTO -->
+    <div id="new-member-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto relative">
+            
+            <div id="member-duplicate-warning-popup" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl hidden flex flex-col items-center justify-center p-6 z-40 shadow-2xl animate-scale-up">
+                <div class="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 text-amber-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner mb-4 animate-bounce">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Attenzione, utente già registrato!</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 text-center font-medium max-w-sm mb-6">L'iscritto inserito risulta già presente nel sistema con questo nominativo.</p>
+                <button onclick="closeMemberDuplicateWarning()" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-md">Ho capito</button>
+            </div>
+
+            <div id="success-toast" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-500 transform scale-95 z-30 shadow-2xl">
+                <div class="relative flex items-center justify-center mb-4">
+                    <div class="absolute w-20 h-20 bg-emerald-500/20 rounded-full animate-ping"></div>
+                    <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 text-white rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/40 animate-bounce">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Iscritto Aggiunto!</h3>
+                <p class="text-xs text-slate-400 font-medium mt-1">Dati salvati e sincronizzati con successo.</p>
+            </div>
+
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+                    <div class="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mr-3 shadow-sm">
+                        <i class="fa-solid fa-user-plus text-sm"></i>
+                    </div>
+                    Nuovo Iscritto
+                </h2>
+                <button onclick="closeNewMemberModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <form id="member-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome e Cognome</label>
+                    <input type="text" id="name" required placeholder="Es. Mario Rossi"
+                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 text-sm transition font-medium text-slate-800 dark:text-slate-100">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Telefono / Email</label>
+                    <input type="text" id="contact" required placeholder="Es. 333 1234567"
+                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 text-sm transition font-medium text-slate-800 dark:text-slate-100">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tipo Abbonamento</label>
+                        <select id="plan" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Mensile">Mensile</option>
+                            <option value="Trimestrale">Trimestrale</option>
+                            <option value="Semestrale">Semestrale</option>
+                            <option value="Annuale">Annuale</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Certificato Medico</label>
+                        <select id="cert-status" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Presente">Presente</option>
+                            <option value="Mancante">Certificato mancante</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Data Inizio</label>
+                        <input type="date" id="start-date" required
+                            class="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Data Scadenza</label>
+                        <input type="date" id="expiry" required
+                            class="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
+                    <h3 class="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-wallet text-red-600 mr-1.5"></i> Dettagli Pagamento</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Importo (€)</label>
+                            <input type="number" step="0.01" id="pay-amount" required placeholder="Es. 50.00" oninput="calcRemaining()"
+                                class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Modalità</label>
+                            <select id="pay-method" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                                <option value="Contanti">Contanti</option>
+                                <option value="Bonifico">Bonifico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Stato Pagamento</label>
+                        <select id="pay-status" onchange="togglePendingFields()" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Completo">Completo</option>
+                            <option value="In sospeso">In sospeso</option>
+                        </select>
+                    </div>
+                    <div id="pending-section" class="hidden grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <div>
+                            <label class="block text-[10px] font-bold text-amber-600 uppercase mb-1">Importo Dato (€)</label>
+                            <input type="number" step="0.01" id="pay-given" placeholder="Es. 30.00" oninput="calcRemaining()"
+                                class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1">Importo Mancante (€)</label>
+                            <input type="number" step="0.01" id="pay-missing" placeholder="Es. 20.00"
+                                class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-xl text-xs font-medium text-rose-600">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Scheda / Note Allenamento</label>
+                    <textarea id="notes" rows="2" placeholder="Es. Lun: Petto/Bicipiti..."
+                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium resize-none text-slate-800 dark:text-slate-100"></textarea>
+                </div>
+
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 px-4 rounded-xl transition duration-300 shadow-lg shadow-red-600/20 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-save mr-2"></i> Salva Iscritto
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MODIFICA ISCRITTO -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                    <i class="fa-solid fa-user-pen text-red-600 mr-2"></i> Modifica Iscritto
+                </h3>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <form id="edit-member-form" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome e Cognome</label>
+                    <input type="text" id="edit-name" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Telefono / Email</label>
+                    <input type="text" id="edit-contact" required class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tipo Abbonamento</label>
+                        <select id="edit-plan" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Mensile">Mensile</option>
+                            <option value="Trimestrale">Trimestrale</option>
+                            <option value="Semestrale">Semestrale</option>
+                            <option value="Annuale">Annuale</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Certificato Medico</label>
+                        <select id="edit-cert-status" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Presente">Presente</option>
+                            <option value="Mancante">Certificato mancante</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Data Inizio</label>
+                        <input type="date" id="edit-start-date" required class="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Data Scadenza</label>
+                        <input type="date" id="edit-expiry" required class="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
+                    <h3 class="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-wallet text-red-600 mr-1.5"></i> Dettagli Pagamento</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Importo (€)</label>
+                            <input type="number" step="0.01" id="edit-pay-amount" required class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Modalità</label>
+                            <select id="edit-pay-method" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                                <option value="Contanti">Contanti</option>
+                                <option value="Bonifico">Bonifico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Stato Pagamento</label>
+                        <select id="edit-pay-status" onchange="toggleEditPendingFields()" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Completo">Completo</option>
+                            <option value="In sospeso">In sospeso</option>
+                        </select>
+                    </div>
+                    <div id="edit-pending-section" class="hidden grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <div>
+                            <label class="block text-[10px] font-bold text-amber-600 uppercase mb-1">Importo Dato (€)</label>
+                            <input type="number" step="0.01" id="edit-pay-given" oninput="calcEditRemaining()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1">Importo Mancante (€)</label>
+                            <input type="number" step="0.01" id="edit-pay-missing" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-xl text-xs font-medium text-rose-600">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Note Allenamento</label>
+                    <textarea id="edit-notes" rows="2" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium resize-none text-slate-800 dark:text-slate-100"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition">Annulla</button>
+                    <button type="submit" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-md">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL GESTIONE PAGAMENTO -->
+    <div id="payment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                    <i class="fa-solid fa-wallet text-emerald-600 mr-2"></i> Gestione Pagamento
+                </h3>
+                <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <form id="payment-form" class="space-y-4">
+                <input type="hidden" id="pay-mod-id">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Importo (€)</label>
+                        <input type="number" step="0.01" id="mod-pay-amount" required oninput="calcModRemaining()" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Modalità</label>
+                        <select id="mod-pay-method" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Contanti">Contanti</option>
+                            <option value="Bonifico">Bonifico</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Stato Pagamento</label>
+                    <select id="mod-pay-status" onchange="toggleModPendingFields()" class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                        <option value="Completo">Completo</option>
+                        <option value="In sospeso">In sospeso</option>
+                    </select>
+                </div>
+                <div id="mod-pending-section" class="hidden grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div>
+                        <label class="block text-[10px] font-bold text-amber-600 uppercase mb-1">Importo Dato (€)</label>
+                        <input type="number" step="0.01" id="mod-pay-given" oninput="calcModRemaining()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1">Importo Mancante (€)</label>
+                        <input type="number" step="0.01" id="mod-pay-missing" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-xl text-xs font-medium text-rose-600">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closePaymentModal()" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition">Annulla</button>
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md">Salva Pagamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- POPUP CARD / AZIONI RAPIDE CLICCANDO SULLA BARRA ISCRITTO -->
+    <div id="ios-action-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-100 dark:border-slate-800 rounded-[30px] max-w-lg w-full p-6 shadow-2xl text-slate-800 dark:text-slate-100 transform scale-95 transition-all duration-300">
+            <div class="flex justify-between items-center mb-4 px-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <h4 id="ios-modal-member-name" class="font-extrabold text-xl text-slate-900 dark:text-white">Nome Cliente</h4>
+                </div>
+                <button onclick="closeIosActionModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="border-2 border-emerald-500 rounded-2xl p-4 mb-4 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-2">
+                <div id="ios-modal-phone" class="flex items-center space-x-2 text-emerald-600 font-bold text-sm">
+                    <i class="fa-solid fa-phone"></i>
+                    <span id="ios-modal-contact-text">N/D</span>
+                </div>
+                <hr class="border-emerald-500/40 my-2">
+                <div id="ios-modal-plan" class="text-sm font-extrabold text-slate-800 dark:text-white">Tipo Abbonamento</div>
+                <div id="ios-modal-cert" class="text-xs font-bold"></div>
+                <div id="ios-modal-dates" class="flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300"></div>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl mb-6 space-y-2 border border-slate-200/60 dark:border-slate-700">
+                <div id="ios-modal-amount" class="text-2xl font-black tracking-wider text-red-600 font-mono"></div>
+                <div id="ios-modal-payment-meta" class="text-xs text-slate-600 dark:text-slate-300 font-medium"></div>
+            </div>
+
+            <p class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400 mb-3 px-1">Azioni Rapide</p>
+            <div id="ios-apps-grid" class="grid grid-cols-3 gap-4 py-2 justify-items-center"></div>
+        </div>
+    </div>
+
+    <!-- MODALE STORICO INGRESSI UTENTE + AGGIUNGI INGRESSO -->
+    <div id="user-entries-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 id="user-entries-modal-title" class="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                    <i class="fa-solid fa-right-to-bracket text-red-600 mr-2"></i> Storico Ingressi Utente
+                </h3>
+                <button onclick="closeUserEntriesModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6 flex justify-between items-center">
+                <p id="user-entries-subtitle" class="text-xs text-slate-500 font-medium"></p>
+                <button onclick="openSubEntryModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md flex items-center">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Ingresso
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                            <th class="py-3 px-3">Numero</th>
+                            <th class="py-3 px-3">Data e Ora</th>
+                            <th class="py-3 px-3">Importo / Metodo</th>
+                            <th class="py-3 px-3">Stato</th>
+                            <th class="py-3 px-3 text-right">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-entries-list-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm"></tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 text-right">
+                <button onclick="closeUserEntriesModal()" class="bg-slate-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL AGGIUNGI INGRESSO RAPIDO PER UTENTE ESISTENTE -->
+    <div id="sub-entry-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                    <i class="fa-solid fa-plus text-emerald-600 mr-2"></i> Nuovo Ingresso
+                </h3>
+                <button onclick="closeSubEntryModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <form id="sub-entry-form" class="space-y-4">
+                <input type="hidden" id="sub-entry-name">
+                <input type="hidden" id="sub-entry-surname">
+                <input type="hidden" id="sub-entry-phone">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Data</label>
+                        <input type="date" id="sub-date" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Ora</label>
+                        <input type="time" id="sub-time" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Importo (€)</label>
+                        <input type="number" step="0.01" id="sub-eur" required placeholder="Es. 10.00" oninput="calcSubRemaining()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Metodo</label>
+                        <select id="sub-method" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <option value="Contanti">Contanti</option>
+                            <option value="Bonifico">Bonifico</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Stato Pagamento</label>
+                    <select id="sub-status" onchange="toggleSubPendingFields()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100">
+                        <option value="Completo">Completo</option>
+                        <option value="In sospeso">In sospeso</option>
+                    </select>
+                </div>
+                <div id="sub-pending-section" class="hidden grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div>
+                        <label class="block text-[10px] font-bold text-amber-600 uppercase mb-1">Importo Dato (€)</label>
+                        <input type="number" step="0.01" id="sub-pay-given" oninput="calcSubRemaining()" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1">Importo Mancante (€)</label>
+                        <input type="number" step="0.01" id="sub-pay-missing" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-xl text-xs font-medium text-rose-600">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeSubEntryModal()" class="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition">Annulla</button>
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md">Registra</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL AGGIUNGI / MODIFICA ENTRATA CASSA -->
+    <div id="cassa-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 id="cassa-modal-title" class="text-lg font-bold text-slate-900 dark:text-white">Nuova Entrata</h3>
+                <button onclick="closeCassaModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="cassa-form" class="space-y-4">
+                <input type="hidden" id="cassa-id">
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Data</label>
+                    <input type="date" id="cassa-date" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Descrizione / Utente</label>
+                    <input type="text" id="cassa-desc" required placeholder="Es. Abbonamento Mario" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Categoria</label>
+                    <select id="cassa-cat" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm">
+                        <option value="Abbonamento">Abbonamento</option>
+                        <option value="Ingresso">Ingresso</option>
+                        <option value="Altro">Altro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Importo (€)</label>
+                    <input type="number" step="0.01" id="cassa-eur" required placeholder="Es. 45.00" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeCassaModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">Annulla</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ASSEGNA / LIBERA ARMADIETTO -->
+    <div id="locker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 id="locker-modal-title" class="text-lg font-bold text-slate-900 dark:text-white">Assegna Armadietto</h3>
+                <button onclick="closeLockerModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="locker-modal-body" class="space-y-4">
+                <input type="hidden" id="locker-num">
+                <div id="locker-assign-form">
+                    <label class="block text-xs font-bold uppercase mb-1">Nome e Cognome Iscritto</label>
+                    <input type="text" id="locker-member-name" placeholder="Es. Mario Rossi" class="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm mb-4">
+                    <button onclick="assignLocker()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Conferma Assegnazione</button>
+                </div>
+                <div id="locker-info-view" class="hidden space-y-4">
+                    <p class="text-sm font-semibold">Occupato da: <span id="locker-current-user" class="text-red-600 font-extrabold"></span></p>
+                    <p class="text-xs text-slate-400">Data assegnazione: <span id="locker-current-date"></span></p>
+                    <button onclick="freeLocker()" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md">Libera Armadietto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGICA AGGIORNATA -->
+    <script>
+        const MEMBERS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-C7cU5nK_IP_xP1tKaeeq3Ols0XuQgCg3RaQRXUJgJr5paxLXKN7zwU_2-6vYcEKQ0g/exec';
+        const ENTRIES_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqivIPbp0nSZc6N8AkwqT16uadmqsx7jCl-09pptt44-zLwvjVdAcUX30zHTI-PXYCuA/exec';
+        const PRODUCTS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFuaW6VxOC_TpyNsLaSNB888s6FzNdMp2SIt4voNPO2Iw54jzhpMS82UzZ14s_38EjTw/exec';
+        const CASSA_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnp4P7Ce3ydWREnfkQ2RGLO99YSOg5Edg42V6eRJlORI_VSVNJioF_46dk45fnWZ0V1g/exec';
+        const LOCKERS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzazaWRNZo1SjXbvb5vkxhPlSKyqs5Pm442ZFaDx-bDstZUpIYlxARtwordlmyt4UcF6Q/exec';
+        
+        let members = [];
+        let gymEntries = [];
+        let products = [];
+        let cassaEntries = [];
+        let lockers = {}; // { 1: {name: "Mario Rossi", date: "2026-10-20"}, ... }
+        let lockerHistory = []; // [{ date: '2026-10-20', lockerNum: 1, name: 'Mario Rossi' }]
+        let currentStatusFilter = 'all';
+
+        let barChartInstance = null;
+        let pieChartInstance = null;
+
+        function openSettingsModal() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+        function setTheme(theme) {
+            const btnLight = document.getElementById('theme-btn-light');
+            const btnDark = document.getElementById('theme-btn-dark');
+
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                btnDark.classList.add('border-red-600');
+                btnDark.classList.remove('border-slate-200', 'dark:border-slate-700');
+                btnLight.classList.remove('border-red-600');
+                btnLight.classList.add('border-slate-200', 'dark:border-slate-700');
+            } else {
+                document.documentElement.classList.remove('dark');
+                btnLight.classList.add('border-red-600');
+                btnLight.classList.remove('border-slate-200', 'dark:border-slate-700');
+                btnDark.classList.remove('border-red-600');
+                btnDark.classList.add('border-slate-200', 'dark:border-slate-700');
+            }
+        }
+
+        function setSyncStatus(isSyncing, message = "Cloud Sync Sincronizzato") {
+            const syncDot = document.getElementById('sync-dot');
+            const syncText = document.getElementById('sync-text');
+            if (!syncDot || !syncText) return;
+            
+            if (isSyncing) {
+                syncDot.className = "w-2 h-2 bg-orange-500 rounded-full animate-ping";
+                syncText.innerText = "Sincronizzazione in corso...";
+            } else {
+                syncDot.className = "w-2 h-2 bg-emerald-500 rounded-full animate-pulse";
+                syncText.innerText = message;
+            }
+        }
+
+        async function triggerCloudSync(asyncFunction, successMessage = "Cloud Sync Sincronizzato") {
+            setSyncStatus(true);
+            try {
+                await asyncFunction();
+                setSyncStatus(false, successMessage);
+            } catch (error) {
+                console.error("Errore di sincronizzazione:", error);
+                setSyncStatus(false, "Errore Sincronizzazione");
+                const syncDot = document.getElementById('sync-dot');
+                if (syncDot) syncDot.className = "w-2 h-2 bg-rose-500 rounded-full";
+            }
+        }
+
+        function openSection(section) {
+            const sections = ['dashboard', 'management', 'entries', 'cassa', 'lockers', 'products'];
+            sections.forEach(s => {
+                const el = document.getElementById('section-' + s);
+                const navBtn = document.getElementById('nav-' + s);
+                if (el) el.classList.add('hidden');
+                if (navBtn) {
+                    navBtn.className = "nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all";
+                }
+            });
+
+            const activeEl = document.getElementById('section-' + section);
+            const activeNavBtn = document.getElementById('nav-' + section);
+            if (activeEl) activeEl.classList.remove('hidden');
+            if (activeNavBtn) {
+                activeNavBtn.className = "nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs tracking-wide transition-all bg-red-600 text-white shadow-md shadow-red-600/20";
+            }
+
+            if (section === 'entries') {
+                renderEntriesTable();
+            } else if (section === 'cassa') {
+                onCassaFilterTypeChange();
+            } else if (section === 'lockers') {
+                renderLockersGrid();
+                renderLockerHistory();
+            } else if (section === 'products') {
+                renderProductsCarousel();
+            } else if (section === 'dashboard') {
+                updateStats();
+            }
+        }
+
+        function enterApp() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => { loadingScreen.style.display = 'none'; }, 700);
+        }
+
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            const str = String(dateStr).trim();
+            if (str.includes('T')) return str.split('T')[0];
+            if (str.includes('/') || (str.includes('-') && str.indexOf('-') === 2)) {
+                const parts = str.split(/[\/\-]/);
+                if (parts.length === 3) {
+                    let d = parts[0], m = parts[1], y = parts[2];
+                    if (y.length === 2) y = '20' + y;
+                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                }
+            }
+            return str.substring(0, 10);
+        }
+
+        function togglePendingFields() {
+            const status = document.getElementById('pay-status').value;
+            const section = document.getElementById('pending-section');
+            if (status === 'In sospeso') {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+                document.getElementById('pay-given').value = '';
+                document.getElementById('pay-missing').value = '';
+            }
+        }
+
+        function calcRemaining() {
+            const total = parseFloat(document.getElementById('pay-amount').value) || 0;
+            const given = parseFloat(document.getElementById('pay-given').value) || 0;
+            const missing = Math.max(0, total - given);
+            document.getElementById('pay-missing').value = missing.toFixed(2);
+        }
+
+        function toggleEditPendingFields() {
+            const status = document.getElementById('edit-pay-status').value;
+            const section = document.getElementById('edit-pending-section');
+            if (status === 'In sospeso') {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+                document.getElementById('edit-pay-given').value = '';
+                document.getElementById('edit-pay-missing').value = '';
+            }
+        }
+
+        function calcEditRemaining() {
+            const total = parseFloat(document.getElementById('edit-pay-amount').value) || 0;
+            const given = parseFloat(document.getElementById('edit-pay-given').value) || 0;
+            const missing = Math.max(0, total - given);
+            document.getElementById('edit-pay-missing').value = missing.toFixed(2);
+        }
+
+        function toggleModPendingFields() {
+            const status = document.getElementById('mod-pay-status').value;
+            const section = document.getElementById('mod-pending-section');
+            if (status === 'In sospeso') {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+                document.getElementById('mod-pay-given').value = '';
+                document.getElementById('mod-pay-missing').value = '';
+            }
+        }
+
+        function calcModRemaining() {
+            const total = parseFloat(document.getElementById('mod-pay-amount').value) || 0;
+            const given = parseFloat(document.getElementById('mod-pay-given').value) || 0;
+            const missing = Math.max(0, total - given);
+            document.getElementById('mod-pay-missing').value = missing.toFixed(2);
+        }
+
+        function toggleEntryPendingFields() {
+            const status = document.getElementById('entry-payment-status').value;
+            const section = document.getElementById('entry-pending-section');
+            if (status === 'In sospeso') {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+                document.getElementById('entry-pay-given').value = '';
+                document.getElementById('entry-pay-missing').value = '';
+            }
+        }
+
+        function calcEntryRemaining() {
+            const total = parseFloat(document.getElementById('entry-eur').value) || 0;
+            const given = parseFloat(document.getElementById('entry-pay-given').value) || 0;
+            const missing = Math.max(0, total - given);
+            document.getElementById('entry-pay-missing').value = missing.toFixed(2);
+        }
+
+        function toggleSubPendingFields() {
+            const status = document.getElementById('sub-status').value;
+            const section = document.getElementById('sub-pending-section');
+            if (status === 'In sospeso') {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+                document.getElementById('sub-pay-given').value = '';
+                document.getElementById('sub-pay-missing').value = '';
+            }
+        }
+
+        function calcSubRemaining() {
+            const total = parseFloat(document.getElementById('sub-eur').value) || 0;
+            const given = parseFloat(document.getElementById('sub-pay-given').value) || 0;
+            const missing = Math.max(0, total - given);
+            document.getElementById('sub-pay-missing').value = missing.toFixed(2);
+        }
+
+        // Caricamento Dati Cloud Sequenziale
+        async function loadDataFromCloud() {
+            const progressBar = document.getElementById('loading-progress-bar');
+            const progressPct = document.getElementById('loading-percentage');
+            
+            try {
+                setSyncStatus(true);
+                progressBar.style.width = '30%';
+                progressPct.innerText = '30%';
+
+                const resMembers = await fetch(MEMBERS_SCRIPT_URL);
+                const dataMembers = await resMembers.json();
+                if (dataMembers.length > 0) {
+                    const rows = (dataMembers[0][0] === "ID" || dataMembers[0][0] === "id") ? dataMembers.slice(1) : dataMembers;
+                    members = rows.map(row => ({
+                        id: row[0],
+                        name: row[1] || '',
+                        contact: row[2] || '',
+                        plan: row[3] || '',
+                        startDate: row[4] ? formatDateForInput(row[4]) : '',
+                        expiry: row[5] ? formatDateForInput(row[5]) : '',
+                        notes: row[6] || 'Nessuna scheda inserita.',
+                        statusCustom: row[7] || '',
+                        payAmount: row[8] || '0',
+                        payMethod: row[9] || 'Contanti',
+                        payStatus: row[10] || 'Completo',
+                        payGiven: row[11] || '',
+                        payMissing: row[12] || '',
+                        certStatus: row[13] || 'Presente'
+                    }));
+                }
+
+                progressBar.style.width = '55%';
+                progressPct.innerText = '55%';
+
+                const resEntries = await fetch(ENTRIES_SCRIPT_URL);
+                const dataEntries = await resEntries.json();
+                if (dataEntries.length > 0) {
+                    const rowsE = (dataEntries[0][0] === "ID" || dataEntries[0][0] === "id") ? dataEntries.slice(1) : dataEntries;
+                    gymEntries = rowsE.map(row => ({
+                        id: row[0],
+                        name: row[1] || '',
+                        surname: row[2] || '',
+                        phone: row[3] || '',
+                        date: row[4] ? formatDateForInput(row[4]) : '',
+                        time: row[5] || '',
+                        eur: row[6] || '0',
+                        method: row[7] || 'Contanti',
+                        status: row[8] || 'Completo',
+                        given: row[9] || '',
+                        missing: row[10] || ''
+                    }));
+                }
+
+                progressBar.style.width = '75%';
+                progressPct.innerText = '75%';
+
+                // Caricamento Cassa
+                try {
+                    const resCassa = await fetch(CASSA_SCRIPT_URL);
+                    const dataCassa = await resCassa.json();
+                    if (dataCassa.length > 0) {
+                        const rowsC = (dataCassa[0][0] === "ID" || dataCassa[0][0] === "id") ? dataCassa.slice(1) : dataCassa;
+                        cassaEntries = rowsC.map(row => ({
+                            id: row[0],
+                            date: row[1] ? formatDateForInput(row[1]) : '',
+                            desc: row[2] || '',
+                            cat: row[3] || 'Abbonamento',
+                            eur: row[4] || '0'
+                        }));
+                    }
+                } catch(e) { console.log("Errore caricamento cassa"); }
+
+                // Caricamento Armadietti e Storico
+                try {
+                    const resLockers = await fetch(LOCKERS_SCRIPT_URL);
+                    const dataLockers = await resLockers.json();
+                    if (dataLockers.length > 0) {
+                        const rowsL = (dataLockers[0][0] === "Armadietto" || dataLockers[0][0] === "ID") ? dataLockers.slice(1) : dataLockers;
+                        rowsL.forEach(row => {
+                            if (row[0] && row[1]) {
+                                const lockerNum = row[0];
+                                const name = row[1];
+                                const date = row[2] ? formatDateForInput(row[2]) : '';
+                                const isHistoryOnly = row[3] === 'HISTORY';
+                                
+                                if (!isHistoryOnly) {
+                                    lockers[lockerNum] = { name: name, date: date };
+                                }
+                                lockerHistory.push({ date: date, lockerNum: lockerNum, name: name });
+                            }
+                        });
+                    }
+                } catch(e) { console.log("Errore caricamento armadietti"); }
+
+                try {
+                    const resProd = await fetch(PRODUCTS_SCRIPT_URL);
+                    const dataProd = await resProd.json();
+                    if (dataProd.length > 0) {
+                        const rowsP = (dataProd[0][0] === "ID" || dataProd[0][0] === "id") ? dataProd.slice(1) : dataProd;
+                        products = rowsP.map(row => ({
+                            id: row[0],
+                            name: row[1] || '',
+                            price: row[2] || 0,
+                            qty: parseInt(row[3]) || 0
+                        }));
+                    }
+                } catch (e) { console.log("Errore caricamento prodotti"); }
+
+                progressBar.style.width = '100%';
+                progressPct.innerText = '100% - Sincronizzato';
+
+                renderMembers();
+                updateStats();
+                renderEntriesTable();
+                onCassaFilterTypeChange();
+                renderLockersGrid();
+                renderLockerHistory();
+                renderProductsCarousel();
+                setSyncStatus(false, "Cloud Sync Sincronizzato");
+            } catch (error) {
+                console.error("Errore nel caricamento:", error);
+                progressBar.style.width = '100%';
+                progressPct.innerText = 'Modalità Offline';
+                setSyncStatus(false, "Modalità Offline");
+                const syncDot = document.getElementById('sync-dot');
+                if (syncDot) syncDot.className = "w-2 h-2 bg-amber-500 rounded-full";
+            } finally {
+                setTimeout(() => {
+                    document.getElementById('loading-spinner-area').classList.add('hidden');
+                    document.getElementById('enter-btn-area').classList.remove('hidden');
+                }, 500);
+            }
+        }
+
+        async function saveMembersToCloud() {
+            renderMembers();
+            updateStats();
+            const rowsToSave = [
+                ["ID", "Nome", "Contatto", "Abbonamento", "Data Inizio", "Scadenza", "Note", "Stato Custom", "Importo", "Metodo", "Stato Pagamento", "Dato", "Mancante", "Certificato"],
+                ...members.map(m => [m.id, m.name, m.contact, m.plan, m.startDate, m.expiry, m.notes, m.statusCustom || '', m.payAmount || 0, m.payMethod || '', m.payStatus || '', m.payGiven || '', m.payMissing || '', m.certStatus || 'Presente'])
+            ];
+            await triggerCloudSync(async () => {
+                await fetch(MEMBERS_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rowsToSave)
+                });
+            });
+        }
+
+        async function saveEntriesToCloud() {
+            const rowsToSave = [
+                ["ID", "Nome", "Cognome", "Numero", "Data", "Ora", "EUR", "Metodo Pagamento", "Stato Pagamento", "Importo Dato", "Importo Mancante"],
+                ...gymEntries.map(e => [e.id, e.name, e.surname, e.phone, e.date, e.time, e.eur, e.method, e.status, e.given || '', e.missing || ''])
+            ];
+            await triggerCloudSync(async () => {
+                await fetch(ENTRIES_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rowsToSave)
+                });
+            });
+        }
+
+        async function saveCassaToCloud() {
+            const rowsToSave = [
+                ["ID", "Data", "Descrizione", "Categoria", "Importo"],
+                ...cassaEntries.map(c => [c.id, c.date, c.desc, c.cat, c.eur])
+            ];
+            await triggerCloudSync(async () => {
+                await fetch(CASSA_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rowsToSave)
+                });
+            }, "Cassa Sincronizzata");
+        }
+
+        async function saveLockersToCloud() {
+            const rowsToSave = [
+                ["Armadietto", "Nome Cognome", "Data", "Tipo"],
+                ...Array.from({length: 30}, (_, i) => i + 1).map(num => {
+                    const occ = lockers[num];
+                    return [num, occ ? occ.name : '', occ ? occ.date : '', 'CURRENT'];
+                }),
+                ...lockerHistory.map(h => [h.lockerNum, h.name, h.date, 'HISTORY'])
+            ];
+            await triggerCloudSync(async () => {
+                await fetch(LOCKERS_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rowsToSave)
+                });
+            }, "Armadietti Sincronizzati");
+        }
+
+        async function saveProductsToCloud() {
+            const rowsToSave = [
+                ["ID", "Nome", "Prezzo", "Quantità"],
+                ...products.map(p => [p.id, p.name, p.price, p.qty])
+            ];
+            await triggerCloudSync(async () => {
+                await fetch(PRODUCTS_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rowsToSave)
+                });
+            });
+        }
+
+        function closeMemberDuplicateWarning() {
+            document.getElementById('member-duplicate-warning-popup').classList.add('hidden');
+        }
+
+        document.getElementById('member-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('name').value.trim();
+
+            const existing = members.find(m => m.name.toLowerCase() === nameInput.toLowerCase());
+            if (existing) {
+                document.getElementById('member-duplicate-warning-popup').classList.remove('hidden');
+                return;
+            }
+
+            const payStatus = document.getElementById('pay-status').value;
+            const amountVal = document.getElementById('pay-amount').value || '0';
+            const startDateVal = document.getElementById('start-date').value || new Date().toISOString().split('T')[0];
+
+            const newMember = {
+                id: Date.now(),
+                name: nameInput,
+                contact: document.getElementById('contact').value,
+                plan: document.getElementById('plan').value,
+                startDate: startDateVal,
+                expiry: document.getElementById('expiry').value,
+                notes: document.getElementById('notes').value || "Nessuna scheda inserita.",
+                statusCustom: '',
+                payAmount: amountVal,
+                payMethod: document.getElementById('pay-method').value,
+                payStatus: payStatus,
+                payGiven: payStatus === 'In sospeso' ? document.getElementById('pay-given').value : '',
+                payMissing: payStatus === 'In sospeso' ? document.getElementById('pay-missing').value : '',
+                certStatus: document.getElementById('cert-status').value
+            };
+            members.push(newMember);
+
+            cassaEntries.push({
+                id: Date.now() + 1,
+                date: startDateVal,
+                desc: `Abbonamento (${newMember.plan}) - ${newMember.name}`,
+                cat: 'Abbonamento',
+                eur: amountVal
+            });
+
+            document.getElementById('member-form').reset();
+            togglePendingFields();
+            renderMembers();
+            updateStats();
+            onCassaFilterTypeChange();
+            
+            const successToast = document.getElementById('success-toast');
+            successToast.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+            successToast.classList.add('opacity-100', 'scale-100');
+            
+            setTimeout(() => {
+                successToast.classList.remove('opacity-100', 'scale-100');
+                successToast.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+                closeNewMemberModal();
+            }, 2000);
+
+            await saveMembersToCloud();
+            await saveCassaToCloud();
+        });
+
+        document.getElementById('edit-member-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const member = members.find(m => String(m.id) === String(id));
+            if (!member) return;
+
+            const oldAmount = parseFloat(member.payAmount) || 0;
+            const payStatus = document.getElementById('edit-pay-status').value;
+            const newAmount = parseFloat(document.getElementById('edit-pay-amount').value) || 0;
+
+            member.name = document.getElementById('edit-name').value;
+            member.contact = document.getElementById('edit-contact').value;
+            member.plan = document.getElementById('edit-plan').value;
+            member.startDate = document.getElementById('edit-start-date').value;
+            member.expiry = document.getElementById('edit-expiry').value;
+            member.notes = document.getElementById('edit-notes').value;
+            member.payAmount = newAmount;
+            member.payMethod = document.getElementById('edit-pay-method').value;
+            member.payStatus = payStatus;
+            member.payGiven = payStatus === 'In sospeso' ? document.getElementById('edit-pay-given').value : '';
+            member.payMissing = payStatus === 'In sospeso' ? document.getElementById('edit-pay-missing').value : '';
+            member.certStatus = document.getElementById('edit-cert-status').value;
+
+            if (newAmount !== oldAmount) {
+                cassaEntries.push({
+                    id: Date.now(),
+                    date: member.startDate || new Date().toISOString().split('T')[0],
+                    desc: `Modifica Abbonamento - ${member.name}`,
+                    cat: 'Abbonamento',
+                    eur: newAmount
+                });
+                onCassaFilterTypeChange();
+                await saveCassaToCloud();
+            }
+
+            closeEditModal();
+            renderMembers();
+            updateStats();
+            await saveMembersToCloud();
+        });
+
+        document.getElementById('payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('pay-mod-id').value;
+            const member = members.find(m => String(m.id) === String(id));
+            if (!member) return;
+
+            const oldAmount = parseFloat(member.payAmount) || 0;
+            const payStatus = document.getElementById('mod-pay-status').value;
+            const newAmount = parseFloat(document.getElementById('mod-pay-amount').value) || 0;
+
+            member.payAmount = newAmount;
+            member.payMethod = document.getElementById('mod-pay-method').value;
+            member.payStatus = payStatus;
+            member.payGiven = payStatus === 'In sospeso' ? document.getElementById('mod-pay-given').value : '';
+            member.payMissing = payStatus === 'In sospeso' ? document.getElementById('mod-pay-missing').value : '';
+
+            if (newAmount !== oldAmount) {
+                cassaEntries.push({
+                    id: Date.now(),
+                    date: new Date().toISOString().split('T')[0],
+                    desc: `Pagamento Sospeso/Aggiornato - ${member.name}`,
+                    cat: 'Abbonamento',
+                    eur: newAmount
+                });
+                onCassaFilterTypeChange();
+                await saveCassaToCloud();
+            }
+
+            closePaymentModal();
+            renderMembers();
+            updateStats();
+            await saveMembersToCloud();
+        });
+
+        async function setNonPracticing(id) {
+            const member = members.find(m => String(m.id) === String(id));
+            if (!member) return;
+            member.statusCustom = (member.statusCustom === 'non-practicing') ? '' : 'non-practicing';
+            renderMembers();
+            updateStats();
+            await saveMembersToCloud();
+        }
+
+        async function renewMember(id) {
+            const member = members.find(m => String(m.id) === String(id));
+            if (!member) return;
+            const newExpiry = prompt(`Inserisci la nuova data di scadenza (YYYY-MM-DD) per ${member.name}:`, new Date().toISOString().split('T')[0]);
+            if (!newExpiry) return;
+            member.expiry = newExpiry;
+            member.statusCustom = '';
+
+            cassaEntries.push({
+                id: Date.now(),
+                date: new Date().toISOString().split('T')[0],
+                desc: `Rinnovo Abbonamento (${member.plan}) - ${member.name}`,
+                cat: 'Abbonamento',
+                eur: member.payAmount || 0
+            });
+
+            renderMembers();
+            updateStats();
+            onCassaFilterTypeChange();
+            await saveMembersToCloud();
+            await saveCassaToCloud();
+        }
+
+        async function deleteMember(id) {
+            if (confirm("Sei sicuro di voler eliminare questo iscritto?")) {
+                const member = members.find(m => String(m.id) === String(id));
+                if (member) {
+                    const lastCassaIndex = cassaEntries.slice().reverse().findIndex(c => c.desc.includes(member.name));
+                    if (lastCassaIndex !== -1) {
+                        const actualIndex = cassaEntries.length - 1 - lastCassaIndex;
+                        cassaEntries.splice(actualIndex, 1);
+                        onCassaFilterTypeChange();
+                        await saveCassaToCloud();
+                    }
+                }
+                members = members.filter(m => String(m.id) !== String(id));
+                renderMembers();
+                updateStats();
+                await saveMembersToCloud();
+            }
+        }
+
+        function showWorkout(id) {
+            const member = members.find(m => String(m.id) === String(id));
+            if (member) {
+                document.getElementById('modal-title').innerText = `Scheda Allenamento: ${member.name}`;
+                document.getElementById('modal-content').innerText = member.notes;
+                document.getElementById('modal').classList.remove('hidden');
+            }
+        }
+
+        function openNewMemberModal() { document.getElementById('new-member-modal').classList.remove('hidden'); }
+        function closeNewMemberModal() { document.getElementById('new-member-modal').classList.add('hidden'); }
+        
+        function openEditModal(id) {
+            const m = members.find(item => String(item.id) === String(id));
+            if (!m) return;
+            document.getElementById('edit-id').value = m.id;
+            document.getElementById('edit-name').value = m.name;
+            document.getElementById('edit-contact').value = m.contact;
+            document.getElementById('edit-plan').value = m.plan;
+            document.getElementById('edit-cert-status').value = m.certStatus || 'Presente';
+            document.getElementById('edit-start-date').value = m.startDate;
+            document.getElementById('edit-expiry').value = m.expiry;
+            document.getElementById('edit-pay-amount').value = m.payAmount || '';
+            document.getElementById('edit-pay-method').value = m.payMethod || 'Contanti';
+            document.getElementById('edit-pay-status').value = m.payStatus || 'Completo';
+            document.getElementById('edit-notes').value = m.notes;
+            
+            toggleEditPendingFields();
+            if (m.payStatus === 'In sospeso') {
+                document.getElementById('edit-pay-given').value = m.payGiven || '';
+                document.getElementById('edit-pay-missing').value = m.payMissing || '';
+            }
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function openPaymentModal(id) {
+            const m = members.find(item => String(item.id) === String(id));
+            if (!m) return;
+            document.getElementById('pay-mod-id').value = m.id;
+            document.getElementById('mod-pay-amount').value = m.payAmount || '';
+            document.getElementById('mod-pay-method').value = m.payMethod || 'Contanti';
+            document.getElementById('mod-pay-status').value = m.payStatus || 'Completo';
+
+            toggleModPendingFields();
+            if (m.payStatus === 'In sospeso') {
+                document.getElementById('mod-pay-given').value = m.payGiven || '';
+                document.getElementById('mod-pay-missing').value = m.payMissing || '';
+            }
+            document.getElementById('payment-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        function openIosActionMenu(id, event) {
+            if (event) event.stopPropagation();
+            const m = members.find(item => String(item.id) === String(id));
+            if (!m) return;
+
+            document.getElementById('ios-modal-member-name').innerText = m.name;
+            document.getElementById('ios-modal-contact-text').innerText = m.contact || 'N/D';
+            
+            document.getElementById('ios-modal-plan').innerText = `Abbonamento: ${m.plan}`;
+            
+            let certText = (m.certStatus === 'Mancante') ? `<span class="text-rose-600 font-bold"><i class="fa-solid fa-file-circle-exclamation mr-1"></i> Certificato medico: Mancante</span>` : `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-file-medical mr-1"></i> Certificato medico: Presente</span>`;
+            document.getElementById('ios-modal-cert').innerHTML = certText;
+
+            document.getElementById('ios-modal-dates').innerHTML = `
+                <span>Inizio: ${m.startDate || 'N/D'}</span>
+                <i class="fa-solid fa-arrow-right-long text-emerald-600 text-lg px-2"></i>
+                <span>Scad: ${m.expiry || 'N/D'}</span>
+            `;
+
+            document.getElementById('ios-modal-amount').innerText = `€ ${Number(m.payAmount || 0).toFixed(2)}`;
+            let metaHtml = `Modalità: ${m.payMethod || 'Contanti'} | Stato: <b class="${m.payStatus === 'Completo' ? 'text-emerald-600' : 'text-amber-600'}">${m.payStatus}</b>`;
+            if (m.payStatus === 'In sospeso') {
+                metaHtml += `<br><span class="text-rose-600 font-bold">Dato: €${Number(m.payGiven || 0).toFixed(2)} | Mancante: €${Number(m.payMissing || 0).toFixed(2)}</span>`;
+            }
+            document.getElementById('ios-modal-payment-meta').innerHTML = metaHtml;
+
+            const status = getStatus(m);
+            const grid = document.getElementById('ios-apps-grid');
+            grid.innerHTML = '';
+
+            const apps = [];
+
+            if (m.payStatus === 'In sospeso') {
+                apps.push({
+                    label: 'Pagamento',
+                    icon: 'fa-wallet',
+                    bg: 'bg-emerald-500/80 shadow-emerald-500/30',
+                    action: `closeIosActionModal(); openPaymentModal('${m.id}')`
+                });
+            }
+
+            apps.push({
+                label: 'Non Praticante',
+                icon: 'fa-user-slash',
+                bg: 'bg-blue-500/80 shadow-blue-500/30',
+                action: `closeIosActionModal(); setNonPracticing('${m.id}')`
+            });
+
+            apps.push({
+                label: 'Modifica',
+                icon: 'fa-pen-to-square',
+                bg: 'bg-sky-400/80 shadow-sky-400/30',
+                action: `closeIosActionModal(); openEditModal('${m.id}')`
+            });
+
+            if (status.statusKey === 'expired') {
+                apps.push({
+                    label: 'Rinnova',
+                    icon: 'fa-rotate-right',
+                    bg: 'bg-emerald-600/80 shadow-emerald-600/30',
+                    action: `closeIosActionModal(); renewMember('${m.id}')`
+                });
+            }
+
+            apps.push({
+                label: 'Note',
+                icon: 'fa-dumbbell',
+                bg: 'bg-amber-500/80 shadow-amber-500/30',
+                action: `closeIosActionModal(); showWorkout('${m.id}')`
+            });
+
+            apps.push({
+                label: 'Elimina',
+                icon: 'fa-trash',
+                bg: 'bg-rose-600/80 shadow-rose-600/30',
+                action: `closeIosActionModal(); deleteMember('${m.id}')`
+            });
+
+            apps.forEach(app => {
+                const div = document.createElement('div');
+                div.className = "flex flex-col items-center group cursor-pointer";
+                div.onclick = new Function(app.action);
+                div.innerHTML = `
+                    <div class="w-14 h-14 ${app.bg} rounded-2xl flex items-center justify-center text-xl text-white shadow-lg transform group-hover:scale-110 group-active:scale-95 transition-all duration-200">
+                        <i class="fa-solid ${app.icon}"></i>
+                    </div>
+                    <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300 mt-2 tracking-tight group-hover:text-slate-900 dark:group-hover:text-white transition">${app.label}</span>
+                `;
+                grid.appendChild(div);
+            });
+
+            document.getElementById('ios-action-modal').classList.remove('hidden');
+        }
+
+        function closeIosActionModal() {
+            document.getElementById('ios-action-modal').classList.add('hidden');
+        }
+
+        function getStatus(member) {
+            if (member.statusCustom === 'non-practicing') {
+                return { label: 'Non praticante', statusKey: 'non-practicing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border-blue-300 dark:border-blue-800' };
+            }
+            if (!member.expiry) return { label: 'N/D', statusKey: 'expired', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const today = new Date(todayStr).getTime();
+            const exp = new Date(member.expiry).getTime();
+            const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+
+            if (exp < today) {
+                return { label: 'Scaduto', statusKey: 'expired', color: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-300 dark:border-rose-800' };
+            } else if (diffDays <= 5) {
+                return { label: 'In scadenza', statusKey: 'expiring', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border-amber-300 dark:border-amber-800' };
+            } else {
+                return { label: 'Attivo', statusKey: 'active', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800' };
+            }
+        }
+
+        function setFilterStatus(status) {
+            currentStatusFilter = status;
+            ['active', 'expiring', 'all', 'expired', 'non-practicing', 'suspended'].forEach(s => {
+                const btn = document.getElementById('filter-' + s);
+                if (btn) {
+                    btn.className = "px-3.5 py-2 rounded-xl transition whitespace-nowrap " + (status === s ? "bg-white dark:bg-slate-700 text-red-600 shadow-sm font-extrabold" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 font-bold");
+                }
+            });
+            renderMembers(document.getElementById('search').value);
+        }
+
+        function renderMembers(filter = '') {
+            const container = document.getElementById('member-list-container');
+            container.innerHTML = '';
+            const query = filter.toLowerCase().trim();
+
+            const filteredMembers = members.filter(m => {
+                const nameStr = (m.name || '').toLowerCase();
+                const contactStr = (m.contact || '').toLowerCase();
+                const matchesSearch = query === '' || nameStr.includes(query) || contactStr.includes(query);
+                
+                const statusObj = getStatus(m);
+                const isNonPracticing = (m.statusCustom === 'non-practicing');
+
+                if (query !== '') {
+                    return matchesSearch;
+                }
+
+                if (currentStatusFilter === 'non-practicing') {
+                    return isNonPracticing;
+                } else {
+                    if (isNonPracticing) return false;
+                }
+
+                let matchesStatus = true;
+                if (currentStatusFilter === 'active') matchesStatus = (statusObj.statusKey === 'active');
+                else if (currentStatusFilter === 'expiring') matchesStatus = (statusObj.statusKey === 'expiring');
+                else if (currentStatusFilter === 'expired') matchesStatus = (statusObj.statusKey === 'expired');
+                else if (currentStatusFilter === 'suspended') matchesStatus = (m.payStatus === 'In sospeso');
+
+                return matchesStatus;
+            });
+
+            if (filteredMembers.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-slate-400 font-medium italic">Nessun iscritto trovato.</div>`;
+                return;
+            }
+
+            filteredMembers.forEach(m => {
+                const status = getStatus(m);
+                
+                let warningSymbolsHtml = '';
+                if (m.payStatus === 'In sospeso') {
+                    warningSymbolsHtml += `
+                        <span class="text-orange-500 mr-1.5 text-xl inline-flex items-center" title="Pagamento in sospeso">
+                            <i class="fa-solid fa-triangle-exclamation animate-pulse"></i>
+                        </span>
+                    `;
+                }
+                if (m.certStatus === 'Mancante') {
+                    warningSymbolsHtml += `
+                        <span class="text-rose-600 mr-2 text-xl inline-flex items-center" title="Certificato medico mancante">
+                            <i class="fa-solid fa-file-circle-exclamation animate-bounce"></i>
+                        </span>
+                    `;
+                }
+
+                const barDiv = document.createElement('div');
+                barDiv.className = "bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/80 dark:hover:bg-slate-800 p-4 rounded-3xl transition flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer border border-slate-200/80 dark:border-slate-800";
+                barDiv.onclick = (e) => openIosActionMenu(m.id, e);
+
+                barDiv.innerHTML = `
+                    <div class="flex items-center space-x-3 sm:w-1/4">
+                        <div class="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center font-bold text-sm shrink-0">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-slate-900 dark:text-white text-sm">${m.name}</h4>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300 justify-center sm:w-2/4">
+                        <div class="bg-slate-200/70 dark:bg-slate-700 px-3 py-1.5 rounded-xl">
+                            Inizio: ${m.startDate || 'N/D'}
+                        </div>
+                        <i class="fa-solid fa-arrow-right-long text-emerald-600 text-lg px-2"></i>
+                        <div class="bg-slate-200/70 dark:bg-slate-700 px-3 py-1.5 rounded-xl">
+                            Scad: ${m.expiry || 'N/D'}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2 justify-end sm:w-1/4 w-full sm:w-auto">
+                        ${warningSymbolsHtml}
+                        <span class="px-4 py-2 text-sm rounded-full border ${status.color} font-bold shadow-xs">${status.label}</span>
+                    </div>
+                `;
+                container.appendChild(barDiv);
+            });
+        }
+
+        function updateStats() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const today = new Date(todayStr).getTime();
+
+            const totalRegistered = members.length;
+            const practicingMembers = members.filter(m => m.statusCustom !== 'non-practicing');
+            const totalMembers = practicingMembers.length;
+
+            let activeCount = 0;
+            let expiringCount = 0;
+            let expiredCount = 0;
+
+            practicingMembers.forEach(m => {
+                if (!m.expiry) {
+                    expiredCount++;
+                    return;
+                }
+                const exp = new Date(m.expiry).getTime();
+                const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+                if (exp < today) {
+                    expiredCount++;
+                } else if (diffDays <= 5) {
+                    expiringCount++;
+                } else {
+                    activeCount++;
+                }
+            });
+
+            document.getElementById('total-registered').innerText = totalRegistered;
+            document.getElementById('total-members').innerText = totalMembers;
+            document.getElementById('active-members').innerText = activeCount + expiringCount;
+            document.getElementById('expired-members').innerText = expiredCount;
+
+            document.getElementById('home-total-registered').innerText = totalRegistered;
+            document.getElementById('home-total-members').innerText = totalMembers;
+            document.getElementById('home-active-members').innerText = activeCount + expiringCount;
+            document.getElementById('home-expired-members').innerText = expiredCount;
+
+            updateCharts(activeCount, expiringCount, expiredCount, totalMembers);
+        }
+
+        function updateCharts(active, expiring, expired, total) {
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            if (barChartInstance) barChartInstance.destroy();
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Attivi', 'In Scadenza', 'Scaduti', 'Totali Praticanti'],
+                    datasets: [{
+                        label: 'Numero Iscritti',
+                        data: [active, expiring, expired, total],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e', '#ef4444'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Attivi', 'In Scadenza', 'Scaduti'],
+                    datasets: [{
+                        data: [active, expiring, expired],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function onCassaFilterTypeChange() {
+            const type = document.getElementById('cassa-filter-type').value;
+            const container = document.getElementById('cassa-filter-selector-container');
+            container.innerHTML = '';
+
+            if (type === 'day') {
+                container.innerHTML = `<input type="date" id="cassa-date-picker" onchange="renderCassaTable()" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200">`;
+                document.getElementById('cassa-date-picker').value = new Date().toISOString().split('T')[0];
+            } else if (type === 'month') {
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                container.innerHTML = `<input type="month" id="cassa-month-picker" onchange="renderCassaTable()" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200" value="${currentMonth}">`;
+            } else if (type === 'year') {
+                const currentYear = new Date().getFullYear();
+                container.innerHTML = `<input type="number" id="cassa-year-picker" onchange="renderCassaTable()" placeholder="Anno (es. 2026)" class="w-32 px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200" value="${currentYear}">`;
+            }
+            renderCassaTable();
+        }
+
+        function renderCassaTable() {
+            const tbody = document.getElementById('cassa-table-body');
+            tbody.innerHTML = '';
+            const filterType = document.getElementById('cassa-filter-type').value;
+
+            let filtered = cassaEntries.filter(c => {
+                if (!c.date) return true;
+                if (filterType === 'day') {
+                    const picker = document.getElementById('cassa-date-picker');
+                    return picker && picker.value ? c.date === picker.value : true;
+                } else if (filterType === 'month') {
+                    const picker = document.getElementById('cassa-month-picker');
+                    if (picker && picker.value) {
+                        return c.date.startsWith(picker.value);
+                    }
+                } else if (filterType === 'year') {
+                    const picker = document.getElementById('cassa-year-picker');
+                    if (picker && picker.value) {
+                        return c.date.startsWith(picker.value);
+                    }
+                }
+                return true;
+            });
+
+            let total = 0;
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs italic">Nessuna entrata trovata per il periodo selezionato.</td></tr>`;
+            }
+
+            filtered.forEach(c => {
+                total += parseFloat(c.eur || 0);
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-100 dark:border-slate-800 text-sm";
+                tr.innerHTML = `
+                    <td class="py-3 px-3">${c.date || '-'}</td>
+                    <td class="py-3 px-3 font-semibold">${c.desc}</td>
+                    <td class="py-3 px-3"><span class="px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-800 font-bold">${c.cat}</span></td>
+                    <td class="py-3 px-3 font-bold text-emerald-600">€ ${Number(c.eur).toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right space-x-2">
+                        <button onclick="openEditCassaModal('${c.id}')" class="text-sky-500 hover:text-sky-600 p-1.5" title="Modifica"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteCassaEntry('${c.id}')" class="text-rose-500 hover:text-rose-600 p-1.5" title="Elimina"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('cassa-total-amount').innerText = `€ ${total.toFixed(2)}`;
+        }
+
+        function openAddCassaModal() {
+            document.getElementById('cassa-modal-title').innerText = "Nuova Entrata Cassa";
+            document.getElementById('cassa-id').value = '';
+            document.getElementById('cassa-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('cassa-desc').value = '';
+            document.getElementById('cassa-eur').value = '';
+            document.getElementById('cassa-modal').classList.remove('hidden');
+        }
+
+        function openEditCassaModal(id) {
+            const entry = cassaEntries.find(c => String(c.id) === String(id));
+            if (!entry) return;
+            document.getElementById('cassa-modal-title').innerText = "Modifica Entrata Cassa";
+            document.getElementById('cassa-id').value = entry.id;
+            document.getElementById('cassa-date').value = entry.date;
+            document.getElementById('cassa-desc').value = entry.desc;
+            document.getElementById('cassa-cat').value = entry.cat;
+            document.getElementById('cassa-eur').value = entry.eur;
+            document.getElementById('cassa-modal').classList.remove('hidden');
+        }
+
+        function closeCassaModal() { document.getElementById('cassa-modal').classList.add('hidden'); }
+
+        document.getElementById('cassa-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('cassa-id').value;
+            const entry = {
+                id: id ? id : Date.now(),
+                date: document.getElementById('cassa-date').value,
+                desc: document.getElementById('cassa-desc').value,
+                cat: document.getElementById('cassa-cat').value,
+                eur: document.getElementById('cassa-eur').value
+            };
+            if (id) {
+                const idx = cassaEntries.findIndex(c => String(c.id) === String(id));
+                if (idx !== -1) cassaEntries[idx] = entry;
+            } else {
+                cassaEntries.push(entry);
+            }
+            closeCassaModal();
+            onCassaFilterTypeChange();
+            await saveCassaToCloud();
+        });
+
+        async function deleteCassaEntry(id) {
+            if (confirm("Vuoi eliminare questa voce dal registro cassa?")) {
+                cassaEntries = cassaEntries.filter(c => String(c.id) !== String(id));
+                onCassaFilterTypeChange();
+                await saveCassaToCloud();
+            }
+        }
+
+        function renderLockersGrid() {
+            const grid = document.getElementById('lockers-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 30; i++) {
+                const occ = lockers[i];
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-2xl border-2 flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-105 ${occ ? 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300' : 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}`;
+                div.onclick = () => openLockerModal(i);
+                div.innerHTML = `
+                    <i class="fa-solid fa-door-closed text-2xl mb-1"></i>
+                    <span class="font-extrabold text-sm">Arm. ${i}</span>
+                    <span class="text-[10px] mt-1 font-semibold truncate max-w-full">${occ ? occ.name : 'Libero'}</span>
+                `;
+                grid.appendChild(div);
+            }
+        }
+
+        function renderLockerHistory() {
+            const tbody = document.getElementById('locker-history-table-body');
+            tbody.innerHTML = '';
+            
+            const dateFilter = document.getElementById('locker-history-date').value;
+            const searchQuery = document.getElementById('locker-history-search').value.toLowerCase().trim();
+
+            const filteredHistory = lockerHistory.filter(h => {
+                const matchDate = !dateFilter || h.date === dateFilter;
+                const matchSearch = !searchQuery || h.name.toLowerCase().includes(searchQuery) || String(h.lockerNum).includes(searchQuery);
+                return matchDate && matchSearch;
+            });
+
+            if (filteredHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400 text-xs italic">Nessun record trovato nello storico armadietti.</td></tr>`;
+                return;
+            }
+
+            filteredHistory.slice().reverse().forEach(h => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-100 dark:border-slate-800 text-sm";
+                tr.innerHTML = `
+                    <td class="py-3 px-3">${h.date || '-'}</td>
+                    <td class="py-3 px-3 font-bold text-red-600">Armadietto N. ${h.lockerNum}</td>
+                    <td class="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">${h.name}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        let selectedLockerNum = null;
+        function openLockerModal(num) {
+            selectedLockerNum = num;
+            document.getElementById('locker-modal-title').innerText = `Armadietto N. ${num}`;
+            const occ = lockers[num];
+            if (occ) {
+                document.getElementById('locker-assign-form').classList.add('hidden');
+                document.getElementById('locker-info-view').classList.remove('hidden');
+                document.getElementById('locker-current-user').innerText = occ.name;
+                document.getElementById('locker-current-date').innerText = occ.date || 'N/D';
+            } else {
+                document.getElementById('locker-info-view').classList.add('hidden');
+                document.getElementById('locker-assign-form').classList.remove('hidden');
+                document.getElementById('locker-member-name').value = '';
+            }
+            document.getElementById('locker-modal').classList.remove('hidden');
+        }
+
+        function closeLockerModal() { document.getElementById('locker-modal').classList.add('hidden'); }
+
+        async function assignLocker() {
+            const name = document.getElementById('locker-member-name').value.trim();
+            if (!name) return alert("Inserisci il nome e cognome dell'iscritto.");
+            const currentDate = new Date().toISOString().split('T')[0];
+            
+            lockers[selectedLockerNum] = { name: name, date: currentDate };
+            lockerHistory.push({ date: currentDate, lockerNum: selectedLockerNum, name: name });
+
+            closeLockerModal();
+            renderLockersGrid();
+            renderLockerHistory();
+            await saveLockersToCloud();
+        }
+
+        async function freeLocker() {
+            if (confirm("Vuoi liberare questo armadietto? (L'utente rimarrà registrato nello storico).")) {
+                delete lockers[selectedLockerNum];
+                closeLockerModal();
+                renderLockersGrid();
+                renderLockerHistory();
+                await saveLockersToCloud();
+            }
+        }
+
+        const entryForm = document.getElementById('entry-form');
+        entryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('entry-name').value.trim();
+            const surnameInput = document.getElementById('entry-surname').value.trim();
+            const fullName = `${nameInput} ${surnameInput}`.toLowerCase();
+            const eurVal = document.getElementById('entry-eur').value || '0';
+            const dateVal = document.getElementById('entry-date').value || new Date().toISOString().split('T')[0];
+
+            const existingUser = gymEntries.find(en => `${en.name} ${en.surname}`.toLowerCase() === fullName);
+            if (existingUser) {
+                document.getElementById('duplicate-warning-popup').classList.remove('hidden');
+                return;
+            }
+
+            const payStatus = document.getElementById('entry-payment-status').value;
+            const newEntry = {
+                id: Date.now(),
+                name: nameInput,
+                surname: surnameInput,
+                phone: document.getElementById('entry-phone').value,
+                date: dateVal,
+                time: document.getElementById('entry-time').value,
+                eur: eurVal,
+                method: document.getElementById('entry-payment-method').value,
+                status: payStatus,
+                given: payStatus === 'In sospeso' ? document.getElementById('entry-pay-given').value : '',
+                missing: payStatus === 'In sospeso' ? document.getElementById('entry-pay-missing').value : ''
+            };
+
+            gymEntries.push(newEntry);
+
+            cassaEntries.push({
+                id: Date.now() + 2,
+                date: dateVal,
+                desc: `Ingresso - ${newEntry.name} ${newEntry.surname}`,
+                cat: 'Ingresso',
+                eur: eurVal
+            });
+
+            entryForm.reset();
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            toggleEntryPendingFields();
+            renderEntriesTable();
+            onCassaFilterTypeChange();
+            await saveEntriesToCloud();
+            await saveCassaToCloud();
+        });
+
+        function closeDuplicateWarning() {
+            document.getElementById('duplicate-warning-popup').classList.add('hidden');
+        }
+
+        function renderEntriesTable() {
+            const tbody = document.getElementById('entries-table-body');
+            tbody.innerHTML = '';
+            const searchInput = document.getElementById('entries-search');
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            const uniqueUsersMap = new Map();
+            gymEntries.forEach(e => {
+                const key = `${e.name} ${e.surname}`.toLowerCase();
+                if (!uniqueUsersMap.has(key)) {
+                    uniqueUsersMap.set(key, {
+                        name: e.name,
+                        surname: e.surname,
+                        phone: e.phone,
+                        entries: []
+                    });
+                }
+                uniqueUsersMap.get(key).entries.push(e);
+            });
+
+            let uniqueUsers = Array.from(uniqueUsersMap.values());
+
+            if (query !== '') {
+                uniqueUsers = uniqueUsers.filter(u => `${u.name} ${u.surname}`.toLowerCase().includes(query) || (u.phone && u.phone.toLowerCase().includes(query)));
+            }
+
+            if (uniqueUsers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="text-center py-8 text-slate-400 text-xs italic">Nessun utente trovato.</td></tr>`;
+                return;
+            }
+
+            uniqueUsers.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer";
+                tr.onclick = () => openUserEntriesModal(u.name, u.surname);
+                tr.innerHTML = `
+                    <td class="py-3.5 px-3 font-semibold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-user text-red-600"></i>
+                        <span>${u.name} ${u.surname}</span>
+                    </td>
+                    <td class="py-3.5 px-3 text-right" onclick="event.stopPropagation()">
+                        <button onclick="deleteUserEntries('${u.name}', '${u.surname}')" class="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-500 p-2 rounded-xl transition shadow-2xs" title="Elimina utente e storico">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openUserEntriesModal(name, surname) {
+            document.getElementById('user-entries-modal-title').innerText = `Storico Ingressi: ${name} ${surname}`;
+            document.getElementById('user-entries-subtitle').innerText = `Visualizza tutti gli ingressi registrati per ${name} ${surname}.`;
+            
+            document.getElementById('sub-entry-name').value = name;
+            document.getElementById('sub-entry-surname').value = surname;
+            const userEntry = gymEntries.find(e => e.name.toLowerCase() === name.toLowerCase() && e.surname.toLowerCase() === surname.toLowerCase());
+            document.getElementById('sub-entry-phone').value = userEntry ? userEntry.phone : '';
+
+            renderUserEntriesList(name, surname);
+            document.getElementById('user-entries-modal').classList.remove('hidden');
+        }
+
+        function closeUserEntriesModal() {
+            document.getElementById('user-entries-modal').classList.add('hidden');
+        }
+
+        function renderUserEntriesList(name, surname) {
+            const listBody = document.getElementById('user-entries-list-body');
+            listBody.innerHTML = '';
+
+            const userEntries = gymEntries.filter(e => e.name.toLowerCase() === name.toLowerCase() && e.surname.toLowerCase() === surname.toLowerCase());
+            
+            if (userEntries.length === 0) {
+                listBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs italic">Nessun ingresso registrato nello storico.</td></tr>`;
+                return;
+            }
+
+            userEntries.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-100 dark:border-slate-800";
+                let payInfo = `€${Number(e.eur).toFixed(2)} (${e.method} - <span class="${e.status === 'Completo' ? 'text-emerald-600' : 'text-amber-600'} font-bold">${e.status}</span>)`;
+                if (e.status === 'In sospeso') {
+                    payInfo += `<br><span class="text-rose-600 text-[10px]">Dato: €${Number(e.given || 0).toFixed(2)} | Mancante: €${Number(e.missing || 0).toFixed(2)}</span>`;
+                }
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium">${e.phone || '-'}</td>
+                    <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium">${e.date} (${e.time})</td>
+                    <td class="py-3 px-3 text-slate-600 dark:text-slate-400 font-medium">${payInfo}</td>
+                    <td class="py-3 px-3 font-bold ${e.status === 'Completo' ? 'text-emerald-600' : 'text-amber-600'}">${e.status}</td>
+                    <td class="py-3 px-3 text-right">
+                        <button onclick="deleteSingleEntry('${e.id}', '${name}', '${surname}')" class="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-500 p-2 rounded-xl transition shadow-2xs" title="Elimina questo ingresso">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </td>
+                `;
+                listBody.appendChild(tr);
+            });
+        }
+
+        async function deleteSingleEntry(id, name, surname) {
+            if (confirm("Sei sicuro di voler eliminare questo specifico ingresso?")) {
+                const cassaIndex = cassaEntries.findIndex(c => c.desc.includes(`${name} ${surname}`) && c.cat === 'Ingresso');
+                if (cassaIndex !== -1) {
+                    cassaEntries.splice(cassaIndex, 1);
+                    onCassaFilterTypeChange();
+                    await saveCassaToCloud();
+                }
+
+                gymEntries = gymEntries.filter(e => String(e.id) !== String(id));
+                renderUserEntriesList(name, surname);
+                renderEntriesTable();
+                await saveEntriesToCloud();
+            }
+        }
+
+        function openSubEntryModal() {
+            document.getElementById('sub-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('sub-time').value = new Date().toTimeString().substring(0, 5);
+            document.getElementById('sub-entry-modal').classList.remove('hidden');
+        }
+
+        function closeSubEntryModal() {
+            document.getElementById('sub-entry-modal').classList.add('hidden');
+        }
+
+        const subEntryForm = document.getElementById('sub-entry-form');
+        subEntryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('sub-entry-name').value;
+            const surname = document.getElementById('sub-entry-surname').value;
+            const payStatus = document.getElementById('sub-status').value;
+            const eurVal = document.getElementById('sub-eur').value;
+            const dateVal = document.getElementById('sub-date').value;
+
+            const newEntry = {
+                id: Date.now(),
+                name: name,
+                surname: surname,
+                phone: document.getElementById('sub-entry-phone').value,
+                date: dateVal,
+                time: document.getElementById('sub-time').value,
+                eur: eurVal,
+                method: document.getElementById('sub-method').value,
+                status: payStatus,
+                given: payStatus === 'In sospeso' ? document.getElementById('sub-pay-given').value : '',
+                missing: payStatus === 'In sospeso' ? document.getElementById('sub-pay-missing').value : ''
+            };
+
+            gymEntries.push(newEntry);
+
+            cassaEntries.push({
+                id: Date.now() + 3,
+                date: dateVal,
+                desc: `Ingresso - ${name} ${surname}`,
+                cat: 'Ingresso',
+                eur: eurVal
+            });
+
+            subEntryForm.reset();
+            closeSubEntryModal();
+            renderUserEntriesList(name, surname);
+            renderEntriesTable();
+            onCassaFilterTypeChange();
+            await saveEntriesToCloud();
+            await saveCassaToCloud();
+        });
+
+        async function deleteUserEntries(name, surname) {
+            if (confirm(`Sei sicuro di voler eliminare tutti gli ingressi per ${name} ${surname}?`)) {
+                cassaEntries = cassaEntries.filter(c => !c.desc.includes(`${name} ${surname}`) || c.cat !== 'Ingresso');
+                
+                gymEntries = gymEntries.filter(e => !(e.name.toLowerCase() === name.toLowerCase() && e.surname.toLowerCase() === surname.toLowerCase()));
+                renderEntriesTable();
+                onCassaFilterTypeChange();
+                await saveEntriesToCloud();
+                await saveCassaToCloud();
+            }
+        }
+
+        const productForm = document.getElementById('product-form');
+        productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newProd = {
+                id: Date.now(),
+                name: document.getElementById('prod-name').value,
+                price: parseFloat(document.getElementById('prod-price').value) || 0,
+                qty: parseInt(document.getElementById('prod-qty').value) || 0
+            };
+            products.push(newProd);
+            productForm.reset();
+            renderProductsCarousel();
+            await saveProductsToCloud();
+        });
+
+        function changeProductQty(id, delta) {
+            const prod = products.find(p => String(p.id) === String(id));
+            if (prod) {
+                prod.qty = Math.max(0, prod.qty + delta);
+                renderProductsCarousel();
+                saveProductsToCloud();
+            }
+        }
+
+        function scrollCarousel(direction) {
+            const container = document.getElementById('products-carousel');
+            container.scrollBy({ left: direction * 240, behavior: 'smooth' });
+        }
+
+        function renderProductsCarousel() {
+            const carousel = document.getElementById('products-carousel');
+            carousel.innerHTML = '';
+            if (products.length === 0) {
+                carousel.innerHTML = `<div class="w-full text-center py-8 text-slate-400 font-medium text-xs italic">Nessun prodotto presente in magazzino.</div>`;
+                return;
+            }
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "min-w-[200px] bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 flex flex-col justify-between shrink-0 snap-start";
+                card.innerHTML = `
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 text-red-600 flex items-center justify-center text-lg mb-3">
+                            <i class="fa-solid fa-box"></i>
+                        </div>
+                        <h4 class="font-extrabold text-slate-900 dark:text-white text-sm line-clamp-1">${p.name}</h4>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">€ ${Number(p.price).toFixed(2)}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-600 dark:text-slate-300">Qta: ${p.qty}</span>
+                        <div class="flex space-x-1">
+                            <button onclick="changeProductQty('${p.id}', -1)" class="w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg flex items-center justify-center text-xs text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-600 transition">-</button>
+                            <button onclick="changeProductQty('${p.id}', 1)" class="w-7 h-7 bg-red-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow-2xs hover:bg-red-700 transition">+</button>
+                        </div>
+                    </div>
+                `;
+                carousel.appendChild(card);
+            });
+        }
+
+        window.onload = function() {
+            loadDataFromCloud();
+            document.getElementById('search').addEventListener('input', (e) => renderMembers(e.target.value));
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            const nowTime = new Date().toTimeString().substring(0, 5);
+            document.getElementById('entry-time').value = nowTime;
+        };
+    </script>
+</body>
+</html>
